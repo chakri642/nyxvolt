@@ -164,6 +164,54 @@ def _download_video(video_id: str) -> Path:
     return output
 
 
+def get_context(video_id: str) -> dict:
+    """Fetch video description + top-liked comments to inform the hook generator.
+    Returns {'description': str, 'comments': list[str]} — empty strings/lists on failure."""
+    api_key = os.environ.get("YOUTUBE_API_KEY", "")
+    ctx = {"description": "", "comments": []}
+    if not api_key:
+        return ctx
+
+    try:
+        resp = requests.get(
+            "https://www.googleapis.com/youtube/v3/videos",
+            params={"part": "snippet", "id": video_id, "key": api_key},
+            timeout=10,
+        )
+        items = resp.json().get("items", [])
+        if items:
+            ctx["description"] = items[0]["snippet"].get("description", "")[:1200]
+    except Exception as e:
+        print(f"  Description fetch failed: {str(e)[:60]}")
+
+    try:
+        resp = requests.get(
+            "https://www.googleapis.com/youtube/v3/commentThreads",
+            params={
+                "part": "snippet",
+                "videoId": video_id,
+                "maxResults": 20,
+                "order": "relevance",
+                "textFormat": "plainText",
+                "key": api_key,
+            },
+            timeout=10,
+        )
+        raw = []
+        for item in resp.json().get("items", []):
+            snip = item["snippet"]["topLevelComment"]["snippet"]
+            text = snip.get("textDisplay", "").strip()
+            likes = int(snip.get("likeCount", 0))
+            if text and len(text) <= 300:
+                raw.append((likes, text))
+        raw.sort(reverse=True)
+        ctx["comments"] = [t for _, t in raw[:10]]
+    except Exception as e:
+        print(f"  Comments fetch failed: {str(e)[:60]}")
+
+    return ctx
+
+
 def get_transcript(video_id: str, rapid_key: str = None) -> str:
     """Fetch English captions via pytubefix. Returns dialogue text or empty string."""
     try:

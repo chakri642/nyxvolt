@@ -81,14 +81,22 @@ def run_pipeline(source: str = None, game: str = None, brainrot: bool = None, po
     # --- Step 2: Compose ---
     music_query = None
     if movie_edit:
-        log.info("Fetching transcript + generating hook (Claude vision + context)...")
-        from scraper.movie_source import get_transcript
+        log.info("Fetching transcript + description + comments + generating hook...")
+        from scraper.movie_source import get_transcript, get_context
         from ai.hook_generator import generate_from_video
         try:
             transcript = get_transcript(raw.stem)
+            ctx = get_context(raw.stem)
             if transcript:
-                log.info(f"Transcript ({len(transcript)} chars): {transcript[:120]}...")
-            hook = generate_from_video(raw, title=game, transcript=transcript)
+                log.info(f"Transcript ({len(transcript)} chars): {transcript[:100]}...")
+            if ctx["description"]:
+                log.info(f"Description ({len(ctx['description'])} chars): {ctx['description'][:100]}...")
+            if ctx["comments"]:
+                log.info(f"Top comments: {len(ctx['comments'])} fetched")
+            hook = generate_from_video(
+                raw, title=game, transcript=transcript,
+                description=ctx["description"], comments=ctx["comments"],
+            )
         except Exception as e:
             log.warning(f"Hook generation failed ({e}), continuing without hook")
             hook = None

@@ -46,8 +46,10 @@ def generate(category: str, clip_title: str = "") -> str:
     return message.content[0].text.strip().upper()
 
 
-def generate_from_video(clip: Path, title: str = "", transcript: str = "") -> str:
-    """Analyze clip visually + use title/transcript context, return engagement-driven hook."""
+def generate_from_video(clip: Path, title: str = "", transcript: str = "",
+                        description: str = "", comments: list = None) -> str:
+    """Analyze clip visually + use title/transcript/description/top-comments context.
+    Top comments often reveal what viewers found emotionally striking — great for hooks."""
     from processor.verify import _extract_frame, _get_duration
 
     dur = _get_duration(clip)
@@ -60,9 +62,14 @@ def generate_from_video(clip: Path, title: str = "", transcript: str = "") -> st
     context_parts = []
     if title:
         context_parts.append(f"Video title: {title}")
+    if description:
+        context_parts.append(f"Video description (uploader's own words): {description[:600]}")
     if transcript:
-        context_parts.append(f"Dialogue/subtitles from clip: {transcript[:800]}")
-    context_block = "\n".join(context_parts)
+        context_parts.append(f"Dialogue/subtitles from clip: {transcript[:600]}")
+    if comments:
+        top = "\n".join(f"- {c}" for c in comments[:8])
+        context_parts.append(f"Top viewer comments (what people loved):\n{top}")
+    context_block = "\n\n".join(context_parts)
 
     content = []
     for f in frames:
@@ -74,8 +81,12 @@ def generate_from_video(clip: Path, title: str = "", transcript: str = "") -> st
     content.append({"type": "text", "text": (
         "You're writing a SCROLL-STOPPING HOOK for an Instagram Reel movie/TV edit.\n\n"
         f"{context_block}\n\n"
+        "USE THE CONTEXT:\n"
+        "- Top comments show what viewers found emotionally powerful — steal that emotion\n"
+        "- Description often names the character/scene — use it for authenticity\n"
+        "- Transcript is dialogue — DON'T quote it literally, but capture the vibe\n\n"
         "CRITICAL RULES:\n"
-        "1. DO NOT literally describe what happens ('She asked for 5000', 'He shoots the guy') — that's boring\n"
+        "1. DO NOT literally describe what happens ('She asked for 5000', 'He shoots the guy')\n"
         "2. Create INTRIGUE, POV, emotion, or a bold claim — make people STOP scrolling\n"
         "3. Reference the character or vibe, not exact plot points\n"
         "4. 3-6 words maximum\n"
@@ -88,7 +99,9 @@ def generate_from_video(clip: Path, title: str = "", transcript: str = "") -> st
         "- 'Why we rewatched it 10 times'\n"
         "- 'This character never missed'\n"
         "- 'Every villain wishes they were him'\n"
-        "- 'The scene that broke us'\n\n"
+        "- 'The scene that broke us'\n"
+        "- 'Chaos was always the plan'\n"
+        "- 'The world made him this'\n\n"
         "BAD hooks (never write these):\n"
         "- 'She Asked For 5000' (literal description)\n"
         "- 'Cool Scene' (boring)\n"
