@@ -94,7 +94,7 @@ def process(video: Path, hook_text: str = None) -> Path:
             f"eq=saturation={SATURATION}:contrast={CONTRAST}:gamma={GAMMA},"
             f"split=2[bg_src][fg_src];"
             f"[bg_src]scale={w}:{h}:force_original_aspect_ratio=increase,"
-            f"crop={w}:{h},boxblur=25:5,eq=brightness=-0.30[bg];"
+            f"crop={w}:{h},boxblur=15:2,eq=brightness=-0.30[bg];"
             f"[fg_src]crop=iw:ih*0.91:0:0,"
             f"scale={w}:{h}:force_original_aspect_ratio=decrease[fg];"
             f"[bg][fg]overlay=(W-w)/2:(H-h)/2[v0];"
@@ -110,21 +110,21 @@ def process(video: Path, hook_text: str = None) -> Path:
         # Slow the audio to match 0.9x video slow-mo
         filter_chain += f";[0:a]atempo={SPEED}[a]"
 
-        cmd = ["ffmpeg", "-y", "-i", str(video), "-i", str(wm_png)]
+        cmd = ["ffmpeg", "-y", "-threads", "0", "-i", str(video), "-i", str(wm_png)]
         if hook_layer_present:
             cmd += ["-i", str(hook_png)]
         cmd += [
             "-filter_complex", filter_chain,
             "-map", v_map,
             "-map", "[a]",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "22",
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23",
             "-c:a", "aac", "-b:a", "192k",
             "-movflags", "+faststart",
             str(output),
         ]
 
         print(f"  ffmpeg movie-edit (hook='{hook_text or 'none'}')...")
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         if result.returncode != 0:
             raise RuntimeError(f"ffmpeg movie edit failed:\n{result.stderr[-2000:]}")
 
