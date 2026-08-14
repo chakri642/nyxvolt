@@ -146,7 +146,7 @@ def _build_ydl_opts() -> dict:
         "outtmpl": str(CLIPS_RAW / "%(id)s.%(ext)s"),
         "quiet": True,
         "no_warnings": True,
-        "extractor_args": {"youtube": {"player_client": ["ios", "android", "web"]}},
+        "extractor_args": {"youtube": {"player_client": ["ios", "android"]}},
         **auth,
     }
 
