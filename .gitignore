@@ -1,0 +1,71 @@
+# --- Secrets & credentials ---
+.env
+.env.local
+.env.*.local
+youtube_cookies.txt
+.instagram_session.json
+*.session
+
+# --- Runtime state (tracks used clips / caches) ---
+.used_clips*.json
+.movie_candidates_cache.json
+
+# --- Generated media (large, transient) ---
+clips/raw/
+clips/processed/
+clips/output/
+clips/secondary/
+clips/*.mp4
+clips/*.mov
+clips/*.webm
+
+# --- Music library (large binary files) ---
+music/**/*.mp3
+music/**/*.wav
+music/**/*.m4a
+music/**/*.aac
+
+# --- Logs ---
+logs/
+*.log
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Virtual environments ---
+venv/
+.venv/
+env/
+ENV/
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# --- Windows ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Temp files ---
+*.tmp
+*.temp
+.cache/
