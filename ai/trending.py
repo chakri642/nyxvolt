@@ -146,13 +146,19 @@ def suggest_movie_queries() -> list[str]:
         messages=[{
             "role": "user",
             "content": (
-                "Give me 10 YouTube search queries to find short viral movie/TV clip edits (30–90 seconds).\n\n"
-                "Mix these styles:\n"
-                "- Character edits: 'joker edit 4k', 'thomas shelby sigma edit', 'walter white transformation'\n"
-                "- Iconic scenes: 'dark knight interrogation scene 4k', 'godfather best scenes'\n"
-                "- Mood edits: 'breaking bad sigma edit', 'inception cinematic edit'\n"
-                "- Trending: pick currently popular movies/shows/characters\n\n"
-                "Queries should return SHORT clips (not full movies, not trailers).\n"
+                "Give me 10 YouTube search queries to find short viral CINEMATIC clips from "
+                "MOVIES or TV SHOWS ONLY (30–90 seconds).\n\n"
+                "STRICT RULES:\n"
+                "- ONLY real movies/TV shows (e.g. Peaky Blinders, Breaking Bad, Dark Knight, John Wick)\n"
+                "- Each query MUST include a specific movie/show/character name\n"
+                "- NO street interviews, NO memes, NO 'sigma male' compilations, NO reactions, NO pranks\n"
+                "- NO general vibe queries like 'sigma edit' — always tie to a specific movie/character\n\n"
+                "Good examples:\n"
+                "  'peaky blinders tommy shelby edit 4k'\n"
+                "  'dark knight joker interrogation scene'\n"
+                "  'john wick action scene edit'\n"
+                "  'breaking bad walter white transformation scene'\n"
+                "  'gladiator maximus edit 4k'\n\n"
                 "Return ONLY this JSON:\n"
                 '{"queries": ["query1", "query2", ..., "query10"]}'
             ),

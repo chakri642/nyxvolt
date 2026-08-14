@@ -24,6 +24,11 @@ SKIP_KEYWORDS = [
     "full movie", "trailer", "official", "interview", "behind the scenes",
     "making of", "reaction", "review", "explained", "podcast", "commentary",
     "compilation hours", "all scenes",
+    # Non-cinematic content that leaks through movie-edit queries
+    "meme", "memes", "sigma male", "prank", "street interview",
+    "gone wrong", "tiktok compilation", "shorts compilation", "funny moments",
+    "asks strangers", "asked strangers", "public interview", "vs public",
+    "cringe", "roast", "rap battle",
 ]
 
 # Fallback video IDs (known viral movie edits) — used if YouTube API quota is exhausted

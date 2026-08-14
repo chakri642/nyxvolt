@@ -111,9 +111,13 @@ def verify(video: Path, category: str, hook: str, brainrot: bool) -> dict[str, A
     ) if brainrot else "vertical 1080x1920 single video (no split-screen)."
 
     prompt = (
-        f"You're verifying an auto-generated Instagram Reel. The intended category was '{category}' but "
-        "ANY viral entertainment content (movie trailers, animations, sports, music videos, celebrities, "
-        "memes, action clips) is FINE — don't reject just because it doesn't literally match the category label.\n\n"
+        "CONTEXT: You're verifying a video for the @nyxvolt Instagram account. WE own this account. "
+        "Our pipeline adds a '@nyxvolt' text watermark and a hook headline to every video we produce — "
+        "these are OUR OWN brand elements, NOT third-party watermarks. NEVER flag '@nyxvolt' or the "
+        "hook text as stolen-content indicators; they are expected and intentional.\n\n"
+        f"The intended category was '{category}' but ANY viral entertainment content (movie trailers, "
+        "animations, sports, music videos, celebrities, memes, action clips) is FINE — don't reject "
+        "just because it doesn't literally match the category label.\n\n"
         f"Video layout: {layout_desc}\n\n"
         "REJECT ONLY IF:\n"
         "1. Main content has spoken/written text clearly in a NON-ENGLISH language "
@@ -125,18 +129,16 @@ def verify(video: Path, category: str, hook: str, brainrot: bool) -> dict[str, A
            "(brief transitions between gameplay are OK).\n"
            if brainrot else "")
         + "4. Serious visual glitches: heavy distortion, freeze frames, watermarks blocking most of the frame.\n"
-        "5. THIRD-PARTY CREATOR/CHANNEL WATERMARKS baked into the video — text overlays like "
+        "5. THIRD-PARTY CREATOR/CHANNEL WATERMARKS baked into the source footage — text overlays like "
         "'NQ FILMS', 'CINEMA CLIPS', 'MOVIE MOMENTS', or any YouTube/TikTok creator branding "
-        "on top of the movie footage. These make the repost look stolen and hurt the account. "
-        "IMPORTANT: '@nyxvolt' is OUR OWN brand watermark — always ALLOWED, never flag it. "
-        "Small studio logos (Warner Bros, Marvel, Netflix corner logos) belonging to the ORIGINAL film are FINE.\n\n"
+        "on top of the movie footage. Small studio logos (Warner Bros, Marvel, Netflix corner logos) "
+        "belonging to the ORIGINAL film are FINE. Remember: '@nyxvolt' is OURS, not third-party.\n\n"
         "APPROVE:\n"
-        "- Movie trailers / cinematic clips even if animated (Despicable Me, Marvel etc.)\n"
+        "- Movie trailers / cinematic clips even if animated\n"
         "- Sports, music, celebrities, memes, viral clips of any type\n"
-        "- Content with English text OR content that's language-agnostic (visuals + music only)\n"
-        "- Brainrot showing real gameplay/crushing with minor UI or brief moments of non-action\n"
-        "- Content with only the original studio's logo (not third-party creator watermarks)\n\n"
-        "Return ONLY valid JSON, no other text:\n"
+        "- Content with English text OR content that's language-agnostic\n"
+        "- Videos with our own '@nyxvolt' watermark and hook text overlay (these are OURS)\n\n"
+        "Return ONLY valid JSON, no other text, no reasoning before or after:\n"
         '{"pass": true|false, "issues": ["specific problems"], "notes": "1-line assessment"}\n'
     )
 
@@ -145,7 +147,7 @@ def verify(video: Path, category: str, hook: str, brainrot: bool) -> dict[str, A
     client = _get_client()
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=500,
+        max_tokens=800,
         messages=[{"role": "user", "content": content}],
     )
 

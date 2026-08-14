@@ -46,11 +46,21 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
 def _make_outlined_text_png(text: str, font_size: int, out_path: Path,
                             canvas_w: int, canvas_h: int,
                             stroke_width: int = 4):
-    """White text with black outline — clean Poppins-style, no background pill."""
+    """White text with black outline — clean Poppins-style, no background pill.
+    Auto-shrinks font size if text would overflow the canvas width."""
     img = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    font = _load_font(font_size)
 
+    max_text_w = canvas_w - 40
+    size = font_size
+    while size > 24:
+        font = _load_font(size)
+        bbox = draw.textbbox((0, 0), text, font=font, stroke_width=stroke_width)
+        if (bbox[2] - bbox[0]) <= max_text_w:
+            break
+        size -= 4
+
+    font = _load_font(size)
     bbox = draw.textbbox((0, 0), text, font=font, stroke_width=stroke_width)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
@@ -79,26 +89,26 @@ def process(video: Path, hook_text: str = None) -> Path:
         wm_png = tmp_dir / "wm.png"
 
         # Watermark: bold outlined text, bottom-center
-        wm_canvas_w, wm_canvas_h = 600, 140
+        wm_canvas_w, wm_canvas_h = 500, 110
         _make_outlined_text_png(
-            BRAND_HANDLE, font_size=72, out_path=wm_png,
-            canvas_w=wm_canvas_w, canvas_h=wm_canvas_h, stroke_width=4,
+            BRAND_HANDLE, font_size=56, out_path=wm_png,
+            canvas_w=wm_canvas_w, canvas_h=wm_canvas_h, stroke_width=3,
         )
 
         # Hook: large bold outlined text, top-center (Poppins-style)
         hook_layer_present = bool(hook_text)
-        hook_canvas_w = w - 60
-        hook_canvas_h = 280
+        hook_canvas_w = w - 80
+        hook_canvas_h = 220
         if hook_layer_present:
             _make_outlined_text_png(
-                hook_text, font_size=110, out_path=hook_png,
-                canvas_w=hook_canvas_w, canvas_h=hook_canvas_h, stroke_width=8,
+                hook_text, font_size=80, out_path=hook_png,
+                canvas_w=hook_canvas_w, canvas_h=hook_canvas_h, stroke_width=6,
             )
 
         # Positions
         wm_x = (w - wm_canvas_w) // 2       # bottom-center
         wm_y = h - wm_canvas_h - 60         # 60px from bottom
-        hook_x = 30                         # centered (canvas is w-60)
+        hook_x = 40                         # centered (canvas is w-80)
         hook_y = 180                        # 180px from top
 
         filter_chain = (
