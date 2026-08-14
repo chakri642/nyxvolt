@@ -126,8 +126,9 @@ def verify(video: Path, category: str, hook: str, brainrot: bool) -> dict[str, A
            if brainrot else "")
         + "4. Serious visual glitches: heavy distortion, freeze frames, watermarks blocking most of the frame.\n"
         "5. THIRD-PARTY CREATOR/CHANNEL WATERMARKS baked into the video — text overlays like "
-        "'NQ FILMS', 'CINEMA CLIPS', 'MOVIE MOMENTS', channel handles/logos, or any YouTube/TikTok "
-        "creator branding on top of the movie footage. These make the repost look stolen and hurt the account. "
+        "'NQ FILMS', 'CINEMA CLIPS', 'MOVIE MOMENTS', or any YouTube/TikTok creator branding "
+        "on top of the movie footage. These make the repost look stolen and hurt the account. "
+        "IMPORTANT: '@nyxvolt' is OUR OWN brand watermark — always ALLOWED, never flag it. "
         "Small studio logos (Warner Bros, Marvel, Netflix corner logos) belonging to the ORIGINAL film are FINE.\n\n"
         "APPROVE:\n"
         "- Movie trailers / cinematic clips even if animated (Despicable Me, Marvel etc.)\n"
