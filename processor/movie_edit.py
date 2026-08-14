@@ -66,31 +66,28 @@ def process(video: Path, hook_text: str = None) -> Path:
         hook_png = tmp_dir / "hook.png"
         wm_png = tmp_dir / "wm.png"
 
-        # Watermark: small outlined text, bottom-right
+        # Watermark: bold outlined text, bottom-center
+        wm_canvas_w, wm_canvas_h = 600, 140
         _make_outlined_text_png(
-            BRAND_HANDLE, font_size=36, out_path=wm_png,
-            canvas_w=320, canvas_h=80, stroke_width=2,
+            BRAND_HANDLE, font_size=72, out_path=wm_png,
+            canvas_w=wm_canvas_w, canvas_h=wm_canvas_h, stroke_width=4,
         )
 
-        # Hook: bold outlined text, top-center, sentence case (Poppins-style)
+        # Hook: large bold outlined text, top-center (Poppins-style)
         hook_layer_present = bool(hook_text)
+        hook_canvas_w = w - 60
+        hook_canvas_h = 280
         if hook_layer_present:
             _make_outlined_text_png(
-                hook_text, font_size=64, out_path=hook_png,
-                canvas_w=w - 60, canvas_h=180, stroke_width=5,
+                hook_text, font_size=110, out_path=hook_png,
+                canvas_w=hook_canvas_w, canvas_h=hook_canvas_h, stroke_width=8,
             )
 
-        # Build filter chain
-        # 1. slow-mo + grade, split into bg/fg
-        # 2. bg: fill + blur + dim
-        # 3. fg: strip bottom 9% (remove watermarks), fit to frame
-        # 4. compose bg+fg → v_base
-        # 5. overlay watermark bottom-right
-        # 6. overlay hook top-center (if present)
-        wm_x = w - 320 - 20    # right edge, small margin
-        wm_y = h - 80 - 40     # bottom edge
-        hook_x = 30            # centered horizontally, canvas is w-60
-        hook_y = 120           # 120px from top
+        # Positions
+        wm_x = (w - wm_canvas_w) // 2       # bottom-center
+        wm_y = h - wm_canvas_h - 60         # 60px from bottom
+        hook_x = 30                         # centered (canvas is w-60)
+        hook_y = 180                        # 180px from top
 
         filter_chain = (
             f"[0:v]setpts=PTS/{SPEED},"
