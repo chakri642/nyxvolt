@@ -15,7 +15,6 @@ TOP_PICK_FROM = 5
 
 USED_CLIPS_FILE = Path(__file__).parent.parent / ".used_clips_movies.json"
 CANDIDATES_CACHE_FILE = Path(__file__).parent.parent / ".movie_candidates_cache.json"
-COOKIE_FILE = Path(__file__).parent.parent / "youtube_cookies.txt"
 CACHE_TTL_HOURS = 24
 MAX_USED_HISTORY = 300
 
@@ -123,31 +122,20 @@ def _is_good(video: dict, used: set) -> bool:
     return True
 
 
-def _valid_cookies(path: Path) -> bool:
-    try:
-        return "Netscape HTTP Cookie File" in path.read_text().strip().splitlines()[0]
-    except Exception:
-        return False
-
-
 def _build_ydl_opts() -> dict:
-    """Configure yt-dlp with cookies (file → browser → clientless fallback)."""
-    if _valid_cookies(COOKIE_FILE):
-        print(f"  Using cookie file: {COOKIE_FILE.name}")
-        auth = {"cookiefile": str(COOKIE_FILE)}
-    else:
-        # Try to pull from installed browsers automatically
-        print("  No cookie file found; trying browser cookies (chrome → safari → firefox)")
-        auth = {"cookiesfrombrowser": ("chrome",)}
-
+    """yt-dlp with OAuth2 (via yt-dlp-youtube-oauth2 plugin) + legacy pre-merged formats.
+    Format 22 (720p) and 18 (360p) are pre-merged mp4 streams that skip both the DASH
+    signature challenge and the PO Token requirement — the two things that break
+    downloads on datacenter IPs like Colab. OAuth avoids cookie rotation."""
     return {
-        "format": "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+        "format": "22/18/best[height<=720]/best",
         "merge_output_format": "mp4",
         "outtmpl": str(CLIPS_RAW / "%(id)s.%(ext)s"),
         "quiet": True,
         "no_warnings": True,
-        "extractor_args": {"youtube": {"player_client": ["ios", "android"]}},
-        **auth,
+        "extractor_args": {"youtube": {"player_client": ["web"]}},
+        "username": "oauth2",
+        "password": "",
     }
 
 
@@ -162,9 +150,9 @@ def get_transcript(video_id: str, rapid_key: str = None) -> str:
             "subtitleslangs": ["en"],
             "skip_download": True,
             "subtitlesformat": "vtt",
+            "username": "oauth2",
+            "password": "",
         }
-        if _valid_cookies(COOKIE_FILE):
-            ydl_opts["cookiefile"] = str(COOKIE_FILE)
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
@@ -280,4 +268,4 @@ def download_clip() -> tuple[Path, str]:
             except Exception as e:
                 print(f"  Skipping ({str(e)[:100]})")
 
-    raise RuntimeError("All YouTube download attempts failed — cookies may have expired")
+    raise RuntimeError("All YouTube download attempts failed — OAuth token may need refresh")
