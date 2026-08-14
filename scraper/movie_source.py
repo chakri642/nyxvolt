@@ -2,10 +2,12 @@ import json
 import os
 import random
 import re
+import subprocess
+import tempfile
 import time
 import requests
-import yt_dlp
 from pathlib import Path
+from pytubefix import YouTube
 from config import CLIPS_RAW
 
 MIN_VIEWS = 500_000
@@ -122,59 +124,61 @@ def _is_good(video: dict, used: set) -> bool:
     return True
 
 
-def _build_ydl_opts() -> dict:
-    """yt-dlp with OAuth2 (via yt-dlp-youtube-oauth2 plugin) + legacy pre-merged formats.
-    Format 22 (720p) and 18 (360p) are pre-merged mp4 streams that skip both the DASH
-    signature challenge and the PO Token requirement — the two things that break
-    downloads on datacenter IPs like Colab. OAuth avoids cookie rotation."""
-    return {
-        "format": "22/18/best[height<=720]/best",
-        "merge_output_format": "mp4",
-        "outtmpl": str(CLIPS_RAW / "%(id)s.%(ext)s"),
-        "quiet": True,
-        "no_warnings": True,
-        "extractor_args": {"youtube": {"player_client": ["web"]}},
-        "username": "oauth2",
-        "password": "",
-    }
+def _download_video(video_id: str) -> Path:
+    """Download best video+audio via pytubefix MWEB client, merge with ffmpeg.
+    MWEB is the only client that works reliably on datacenter IPs (Colab) without
+    OAuth, cookies, or PO tokens. Progressive streams max at 360p, so we grab
+    the best adaptive video-only stream (typically 720p) + best audio + merge."""
+    url = f"https://www.youtube.com/watch?v={video_id}"
+    yt = YouTube(url, 'MWEB')
+
+    video = yt.streams.filter(only_video=True, file_extension='mp4').order_by('resolution').desc().first()
+    audio = yt.streams.filter(only_audio=True).order_by('abr').desc().first()
+
+    if not video or not audio:
+        raise RuntimeError(f"No downloadable streams for {video_id}")
+
+    output = CLIPS_RAW / f"{video_id}.mp4"
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        video.download(str(tmp_dir), "v.mp4")
+        audio.download(str(tmp_dir), "a.mp4")
+
+        result = subprocess.run([
+            "ffmpeg", "-y",
+            "-i", str(tmp_dir / "v.mp4"),
+            "-i", str(tmp_dir / "a.mp4"),
+            "-c:v", "copy", "-c:a", "aac",
+            str(output),
+        ], capture_output=True, text=True, timeout=120)
+
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg merge failed: {result.stderr[-500:]}")
+
+    return output
 
 
 def get_transcript(video_id: str, rapid_key: str = None) -> str:
-    """Fetch transcript via yt-dlp subtitles. Returns dialogue text or empty string."""
+    """Fetch English captions via pytubefix. Returns dialogue text or empty string."""
     try:
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "writesubtitles": True,
-            "writeautomaticsub": True,
-            "subtitleslangs": ["en"],
-            "skip_download": True,
-            "subtitlesformat": "vtt",
-            "username": "oauth2",
-            "password": "",
-        }
+        yt = YouTube(f"https://www.youtube.com/watch?v={video_id}", 'MWEB')
+        caption = None
+        for lang in ("en", "a.en", "en-US", "en-GB"):
+            if lang in yt.captions:
+                caption = yt.captions[lang]
+                break
+        if not caption:
+            return ""
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(f"https://www.youtube.com/watch?v={video_id}", download=False)
-            subs = info.get("subtitles") or info.get("automatic_captions") or {}
-            en_tracks = subs.get("en") or subs.get("en-US") or subs.get("en-GB") or []
-            if not en_tracks:
-                return ""
-            # Fetch VTT text
-            vtt_url = en_tracks[-1].get("url")
-            if not vtt_url:
-                return ""
-            resp = requests.get(vtt_url, timeout=10)
-            resp.raise_for_status()
-            # Strip VTT timestamps + tags, keep dialogue only
-            lines = []
-            for line in resp.text.splitlines():
-                if "-->" in line or line.strip().isdigit() or not line.strip():
-                    continue
-                if line.startswith("WEBVTT") or line.startswith("Kind:") or line.startswith("Language:"):
-                    continue
-                lines.append(re.sub(r"<[^>]+>", "", line).strip())
-            return " ".join(l for l in lines if l)[:1500]
+        srt = caption.generate_srt_captions()
+        lines = []
+        for line in srt.splitlines():
+            line = line.strip()
+            if not line or line.isdigit() or "-->" in line:
+                continue
+            lines.append(re.sub(r"<[^>]+>", "", line))
+        return " ".join(lines)[:1500]
     except Exception as e:
         print(f"  Transcript fetch failed: {str(e)[:80]}")
         return ""
@@ -245,27 +249,21 @@ def download_clip() -> tuple[Path, str]:
     top_views = [f"{int(v['statistics']['viewCount'])//1000}K" for v in top]
     print(f"  Top {len(top)} candidates | views: {top_views}")
 
-    ydl_opts = _build_ydl_opts()
+    for video in top:
+        vid_id = video["id"]
+        title = video["snippet"]["title"]
+        views = int(video["statistics"]["viewCount"])
+        dur = _parse_duration(video["contentDetails"]["duration"])
+        print(f"  Trying: '{title}' | {views//1000}K views | {dur}s")
+        try:
+            downloaded = _download_video(vid_id)
+            if downloaded.exists() and downloaded.stat().st_size > 0:
+                size_mb = downloaded.stat().st_size / (1024 * 1024)
+                print(f"    Downloaded: {size_mb:.1f} MB")
+                used.add(vid_id)
+                _save_used(used)
+                return downloaded, title[:60]
+        except Exception as e:
+            print(f"  Skipping ({str(e)[:100]})")
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        for video in top:
-            vid_id = video["id"]
-            title = video["snippet"]["title"]
-            views = int(video["statistics"]["viewCount"])
-            dur = _parse_duration(video["contentDetails"]["duration"])
-            print(f"  Trying: '{title}' | {views//1000}K views | {dur}s")
-            try:
-                info = ydl.extract_info(f"https://www.youtube.com/watch?v={vid_id}", download=True)
-                downloaded = Path(ydl.prepare_filename(info))
-                if not downloaded.exists():
-                    downloaded = downloaded.with_suffix(".mp4")
-                if downloaded.exists() and downloaded.stat().st_size > 0:
-                    size_mb = downloaded.stat().st_size / (1024 * 1024)
-                    print(f"    Downloaded: {size_mb:.1f} MB")
-                    used.add(vid_id)
-                    _save_used(used)
-                    return downloaded, title[:60]
-            except Exception as e:
-                print(f"  Skipping ({str(e)[:100]})")
-
-    raise RuntimeError("All YouTube download attempts failed — OAuth token may need refresh")
+    raise RuntimeError("All YouTube download attempts failed")
