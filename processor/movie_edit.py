@@ -11,13 +11,23 @@ GAMMA = 0.95
 
 BRAND_HANDLE = "@nyxvolt"
 
-# Poppins-style rounded fonts on macOS (SF Pro Rounded is closest to Poppins)
+# Bold Poppins-style fonts — macOS system paths first, then Linux (Colab) paths.
+# Critical: PIL's ImageFont.load_default() is a fixed 8px bitmap and IGNORES the
+# size argument, so if no truetype font is found, text renders unreadably small.
 BOLD_FONTS = [
-    ("/System/Library/Fonts/SFNSRounded.ttf", 0),      # SF Pro Rounded (Poppins-like)
+    # macOS
+    ("/System/Library/Fonts/SFNSRounded.ttf", 0),
     ("/System/Library/Fonts/SFCompactRounded.ttf", 0),
     ("/System/Library/Fonts/Avenir Next.ttc", 1),
     ("/System/Library/Fonts/HelveticaNeue.ttc", 1),
     ("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 0),
+    # Linux / Colab
+    ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 0),
+    ("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", 0),
+    ("/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf", 0),
+    ("/usr/share/fonts/truetype/freefont/FreeSansBold.ttf", 0),
+    # Repo-bundled fallback
+    (str(Path(__file__).parent.parent / "assets" / "font.ttf"), 0),
 ]
 
 
@@ -28,6 +38,8 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
                 return ImageFont.truetype(path, size, index=index)
             except Exception:
                 continue
+    # Last resort — 8px bitmap that ignores size. Text WILL look tiny.
+    print(f"  WARNING: no truetype font found — text will render at 8px!")
     return ImageFont.load_default()
 
 
