@@ -12,46 +12,56 @@ GAMMA = 0.95
 
 BRAND_HANDLE = "@nyxvolt"
 
-# Bold Poppins-style fonts — macOS system paths first, then Linux (Colab) paths.
+# Font paths — macOS system paths first, then Linux (Colab).
 # Critical: PIL's ImageFont.load_default() is a fixed 8px bitmap and IGNORES the
 # size argument, so if no truetype font is found, text renders unreadably small.
 BOLD_FONTS = [
-    # macOS
     ("/System/Library/Fonts/SFNSRounded.ttf", 0),
     ("/System/Library/Fonts/SFCompactRounded.ttf", 0),
     ("/System/Library/Fonts/Avenir Next.ttc", 1),
     ("/System/Library/Fonts/HelveticaNeue.ttc", 1),
     ("/System/Library/Fonts/Supplemental/Arial Bold.ttf", 0),
-    # Linux / Colab
     ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 0),
     ("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", 0),
     ("/usr/share/fonts/truetype/ubuntu/Ubuntu-B.ttf", 0),
     ("/usr/share/fonts/truetype/freefont/FreeSansBold.ttf", 0),
-    # Repo-bundled fallback
+    (str(Path(__file__).parent.parent / "assets" / "font.ttf"), 0),
+]
+
+# Regular-weight sans for hook (softer TikTok/meme look — see Image #7).
+REGULAR_FONTS = [
+    ("/System/Library/Fonts/SFNS.ttf", 0),
+    ("/System/Library/Fonts/HelveticaNeue.ttc", 0),
+    ("/System/Library/Fonts/Supplemental/Arial.ttf", 0),
+    ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0),
+    ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 0),
+    ("/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf", 0),
+    ("/usr/share/fonts/truetype/freefont/FreeSans.ttf", 0),
     (str(Path(__file__).parent.parent / "assets" / "font.ttf"), 0),
 ]
 
 
-def _load_font(size: int) -> ImageFont.FreeTypeFont:
-    for path, index in BOLD_FONTS:
+def _load_font(size: int, bold: bool = True) -> ImageFont.FreeTypeFont:
+    for path, index in (BOLD_FONTS if bold else REGULAR_FONTS):
         if Path(path).exists():
             try:
                 return ImageFont.truetype(path, size, index=index)
             except Exception:
                 continue
-    # Last resort — 8px bitmap that ignores size. Text WILL look tiny.
     print(f"  WARNING: no truetype font found — text will render at 8px!")
     return ImageFont.load_default()
 
 
 def _make_text_png(text: str, font_size: int, out_path: Path,
                    canvas_w: int, canvas_h: int,
-                   bg_alpha: int = 0, stroke_width: int = 0):
+                   bg_alpha: int = 0, stroke_width: int = 0,
+                   bold: bool = True):
     """Render text into a PNG. Supports:
     - Semi-transparent black background bar (bg_alpha 0=transparent, 255=solid)
     - Auto text wrap (breaks long lines to fit width)
     - Font auto-shrink if still overflowing after wrap
-    - Optional stroke outline (0 = no stroke)."""
+    - Optional stroke outline (0 = no stroke)
+    - Regular vs bold weight."""
     img = Image.new("RGBA", (canvas_w, canvas_h), (0, 0, 0, bg_alpha))
     draw = ImageDraw.Draw(img)
 
@@ -59,7 +69,7 @@ def _make_text_png(text: str, font_size: int, out_path: Path,
     size = font_size
 
     def _wrap(size):
-        font = _load_font(size)
+        font = _load_font(size, bold=bold)
         # Estimate char width from a sample, use it to guess a reasonable wrap width
         avg_char = draw.textbbox((0, 0), "M", font=font)[2] * 0.55
         max_chars = max(6, int(max_text_w / max(avg_char, 1)))
@@ -118,15 +128,15 @@ def process(video: Path, hook_text: str = None) -> Path:
             bg_alpha=0, stroke_width=3,
         )
 
-        # Hook: top bar, wraps to multiple lines, SOLID black bg, no stroke
+        # Hook: transparent bg, regular-weight sans, black stroke for readability
         hook_layer_present = bool(hook_text)
         hook_canvas_w = w
         hook_canvas_h = 280
         if hook_layer_present:
             _make_text_png(
-                hook_text, font_size=80, out_path=hook_png,
+                hook_text, font_size=72, out_path=hook_png,
                 canvas_w=hook_canvas_w, canvas_h=hook_canvas_h,
-                bg_alpha=255, stroke_width=0,
+                bg_alpha=0, stroke_width=4, bold=False,
             )
 
         # Positions
