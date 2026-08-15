@@ -147,15 +147,14 @@ def process(video: Path, hook_text: str = None) -> Path:
         hook_x = 0
         hook_y = 100
 
+        # Crop 9% off the bottom to remove any source-creator watermark,
+        # then scale-fill 9:16 (center-crop overflow). No blurred mirror bg.
         filter_chain = (
             f"[0:v]setpts=PTS/{SPEED},"
             f"eq=saturation={SATURATION}:contrast={CONTRAST}:gamma={GAMMA},"
-            f"split=2[bg_src][fg_src];"
-            f"[bg_src]scale={w}:{h}:force_original_aspect_ratio=increase,"
-            f"crop={w}:{h},boxblur=15:2,eq=brightness=-0.30[bg];"
-            f"[fg_src]crop=iw:ih*0.91:0:0,"
-            f"scale={w}:{h}:force_original_aspect_ratio=decrease[fg];"
-            f"[bg][fg]overlay=(W-w)/2:(H-h)/2[v0];"
+            f"crop=iw:ih*0.91:0:0,"
+            f"scale={w}:{h}:force_original_aspect_ratio=increase,"
+            f"crop={w}:{h}[v0];"
             f"[v0][1:v]overlay={wm_x}:{wm_y}[v1]"
         )
 
