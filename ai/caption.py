@@ -2,7 +2,7 @@ import os
 import anthropic
 
 _client = None
-BRAND_FOOTER = "Daily movie edits — @nyxvolt"
+BRAND_FOOTER = "Daily movie edits by @nyxvolt"
 
 
 def _get_client() -> anthropic.Anthropic:
@@ -21,13 +21,15 @@ def generate_caption(category: str) -> str:
         max_tokens=200,
         system=(
             "You write Instagram Reels captions engineered to maximize COMMENTS. "
-            "Style: 2 short lines. First line = punchy statement/opinion about the clip. "
-            "Second line = a question that begs a comment reply. "
+            "Style: 2 short lines. First line is a punchy statement or opinion about the clip. "
+            "Second line is a question that begs a comment reply. "
             "Rules:\n"
             "- Questions must be specific and easy to answer (rating, favorite, choice, tag someone)\n"
-            "- 1-2 tasteful emojis max (fire, cinema, skull, brain — no random ones)\n"
+            "- 1-2 tasteful emojis max (fire, cinema, skull, brain, no random ones)\n"
             "- NO hashtags in the body, NO generic 'follow for more'\n"
-            "- End with the question — must invite a response"
+            "- End with the question so it invites a response\n"
+            "- NEVER use em dashes (—) or en dashes (–). Use commas, periods, or line breaks instead. "
+            "This is critical: em dashes make posts look AI-generated and hurt reach."
         ),
         messages=[{
             "role": "user",
@@ -38,7 +40,7 @@ def generate_caption(category: str) -> str:
                 "- Which character would you be?\n"
                 "- Tag someone who reminds you of him\n"
                 "- Best line ever or overrated?\n"
-                "- Which show hits harder — X or Y?\n"
+                "- Which show hits harder, X or Y?\n"
                 "- What's your favorite scene from this?\n\n"
                 "Output ONLY the 2-line caption. No hashtags, no quotes, no preamble."
             ),
@@ -46,6 +48,8 @@ def generate_caption(category: str) -> str:
     )
 
     caption_text = message.content[0].text.strip().strip('"').strip("'")
+    # Strip em/en dashes (AI tells) — replace with comma
+    caption_text = caption_text.replace("—", ",").replace("–", ",")
 
     from ai.trending import suggest_clip_hashtags
     tags = suggest_clip_hashtags(category)
