@@ -106,19 +106,19 @@ def process(video: Path, hook_text: str = None) -> Path:
     with tempfile.TemporaryDirectory() as tmp:
         tmp_dir = Path(tmp)
 
-        # Prep text overlays as transparent PNGs with pill backgrounds
+        # Prep text overlays as transparent PNGs
         hook_png = tmp_dir / "hook.png"
         wm_png = tmp_dir / "wm.png"
 
-        # Watermark: bottom bar, semi-transparent black background, no stroke
-        wm_canvas_w, wm_canvas_h = w, 130
+        # Watermark: small corner mark — transparent bg, stroke for readability over video
+        wm_canvas_w, wm_canvas_h = 500, 90
         _make_text_png(
-            BRAND_HANDLE, font_size=56, out_path=wm_png,
+            BRAND_HANDLE, font_size=48, out_path=wm_png,
             canvas_w=wm_canvas_w, canvas_h=wm_canvas_h,
-            bg_alpha=200, stroke_width=0,
+            bg_alpha=0, stroke_width=3,
         )
 
-        # Hook: top bar, wraps to multiple lines, semi-transparent black bg, no stroke
+        # Hook: top bar, wraps to multiple lines, SOLID black bg, no stroke
         hook_layer_present = bool(hook_text)
         hook_canvas_w = w
         hook_canvas_h = 280
@@ -126,14 +126,16 @@ def process(video: Path, hook_text: str = None) -> Path:
             _make_text_png(
                 hook_text, font_size=80, out_path=hook_png,
                 canvas_w=hook_canvas_w, canvas_h=hook_canvas_h,
-                bg_alpha=200, stroke_width=0,
+                bg_alpha=255, stroke_width=0,
             )
 
-        # Positions — full-width bars flush to top/bottom edges (no side margin)
-        wm_x = 0
-        wm_y = h - wm_canvas_h - 40     # 40px above the bottom edge
+        # Positions
+        # Watermark: bottom-right corner, 40px inset from right + bottom edges
+        wm_x = w - wm_canvas_w - 40
+        wm_y = h - wm_canvas_h - 60
+        # Hook: full-width bar flush to top with a small inset
         hook_x = 0
-        hook_y = 100                    # 100px from top
+        hook_y = 100
 
         filter_chain = (
             f"[0:v]setpts=PTS/{SPEED},"
