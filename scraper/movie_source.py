@@ -11,7 +11,7 @@ from pytubefix import YouTube
 from config import CLIPS_RAW
 
 MIN_VIEWS = 500_000
-MIN_LIKES = 100_000
+MIN_LIKES = 500_000
 MIN_DURATION = 20
 MAX_DURATION = 180
 TOP_PICK_FROM = 5
@@ -305,14 +305,16 @@ def download_clip() -> tuple[Path, str]:
 
     top = unique[:TOP_PICK_FROM]
     top_views = [f"{int(v['statistics']['viewCount'])//1000}K" for v in top]
-    print(f"  Top {len(top)} candidates | views: {top_views}")
+    top_likes = [f"{int(v['statistics'].get('likeCount', 0))//1000}K" for v in top]
+    print(f"  Top {len(top)} candidates | views: {top_views} | likes: {top_likes}")
 
     for video in top:
         vid_id = video["id"]
         title = video["snippet"]["title"]
         views = int(video["statistics"]["viewCount"])
+        likes = int(video["statistics"].get("likeCount", 0))
         dur = _parse_duration(video["contentDetails"]["duration"])
-        print(f"  Trying: '{title}' | {views//1000}K views | {dur}s")
+        print(f"  Trying: '{title}' | {views//1000}K views | {likes//1000}K likes | {dur}s")
         try:
             downloaded = _download_video(vid_id)
             if downloaded.exists() and downloaded.stat().st_size > 0:
