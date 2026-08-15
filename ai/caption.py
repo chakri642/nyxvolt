@@ -47,8 +47,8 @@ def generate_caption(category: str) -> str:
 
     caption_text = message.content[0].text.strip().strip('"').strip("'")
 
-    from ai.trending import suggest_movie_hashtags
-    tags = suggest_movie_hashtags()
+    from ai.trending import suggest_clip_hashtags
+    tags = suggest_clip_hashtags(category)
     hashtag_str = " ".join(f"#{t}" for t in tags)
 
-    return f"{caption_text}\n\n{BRAND_FOOTER}\n.\n.\n.\n{hashtag_str}"
+    return f"{caption_text}\n\n{BRAND_FOOTER}\n\n{hashtag_str}"
