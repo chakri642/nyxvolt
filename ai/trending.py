@@ -112,17 +112,22 @@ def suggest_accounts(category_hint: str = None) -> dict:
     ]}
 
 
-def suggest_movie_hashtags() -> list[str]:
-    """Ask Claude for movie/TV/character hashtags to discover viral accounts."""
+def suggest_clip_hashtags(clip_title: str) -> list[str]:
+    """Generate hashtags specific to this exact clip — show name, characters, genre."""
     client = _get_client()
     message = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=300,
         messages=[{"role": "user", "content": (
-            "List 10 Instagram hashtags for viral movie/TV clip edits. "
-            "Mix general (movieedits, sigmaedits), movie names (inceptionedit, peakyblinders), "
-            "and character names (joker, heisenberg, thomasshelby).\n"
-            'Return ONLY: {"hashtags": ["tag1", ..., "tag10"]} — no # prefix.'
+            f"Generate 15 Instagram hashtags for a Reels clip about: \"{clip_title}\"\n\n"
+            "Rules:\n"
+            "- Must be SPECIFIC to this exact show/movie/character — no generic tags\n"
+            "- Include: show/movie name, main characters, related shows in same genre, "
+            "fandom tags, a few broad reach tags (reels, viral, fyp)\n"
+            "- No spaces, lowercase, no # prefix\n"
+            "- Good example for a Breaking Bad clip: breakingbad, walterwhite, heisenberg, "
+            "jessepinkman, bettercallsaul, amc, crimeseries, tvshows, reels, viral\n\n"
+            'Return ONLY: {"hashtags": ["tag1", ..., "tag15"]} — no # prefix.'
         )}],
     )
     try:
@@ -132,8 +137,7 @@ def suggest_movie_hashtags() -> list[str]:
             return tags
     except (json.JSONDecodeError, ValueError):
         pass
-    return ["movieedits", "sigmaedits", "joker", "heisenberg", "thomasshelby",
-            "peakyblinders", "breakingbad", "inceptionedit", "cinematicedits", "filmedits"]
+    return ["reels", "viral", "fyp", "movieedits", "cinematicedits"]
 
 
 def suggest_movie_queries() -> list[str]:
@@ -146,25 +150,24 @@ def suggest_movie_queries() -> list[str]:
         messages=[{
             "role": "user",
             "content": (
-                "Give me 10 YouTube search queries to find short viral clips (30–90 seconds) "
-                "from MOVIES, TV SHOWS, ANIME, or ANIMATED FILMS.\n\n"
+                f"Give me 10 YouTube search queries to find short viral clips (30–90 seconds) "
+                f"from MOVIES, TV SHOWS, ANIME, or ANIMATED FILMS.\n\n"
                 "STRICT RULES:\n"
                 "- Each query MUST name a specific title, character, or scene\n"
                 "- NO street interviews, NO memes, NO 'sigma male', NO reactions, NO pranks\n"
-                "- NO vague queries — always tie to a specific title/character\n\n"
-                "Pick RANDOMLY across these genres (mix at least 4 genres per response):\n"
-                "- Badass action movies: John Wick, Gladiator, Dark Knight, Scarface, Godfather, Mad Max\n"
-                "- Drama/crime series: Breaking Bad, Peaky Blinders, Game of Thrones, Better Call Saul, Ozark\n"
-                "- Anime: Naruto, Dragon Ball Z, Demon Slayer, Attack on Titan, Jujutsu Kaisen, One Piece, Bleach\n"
-                "- Animated/cartoon movies: Kung Fu Panda, Shrek, Spider-Man Into the Spider-Verse, Lion King, Ratatouille, Up, Interstellar\n"
-                "- Thriller/sci-fi: Inception, Interstellar, The Matrix, Avengers, Iron Man\n"
-                "- Comedy/feel-good: The Office, Brooklyn Nine-Nine, Friends, Superbad\n\n"
-                "Good examples:\n"
-                "  'kung fu panda po best moments edit'\n"
-                "  'demon slayer tanjiro vs rui fight scene'\n"
-                "  'john wick pencil scene 4k'\n"
-                "  'breaking bad walter white transformation'\n"
-                "  'spider-man into the spider-verse leap of faith scene'\n\n"
+                "- EVERY response must be DIFFERENT — use your own knowledge, don't repeat titles run to run\n"
+                "- Prefer titles you know have MASSIVE view counts on YouTube edits\n\n"
+                f"This run's seed (use it to vary your picks): {random.randint(1, 9999)}\n\n"
+                "Cover at least 5 DIFFERENT genres in the 10 queries. Genres to draw from:\n"
+                "- Action / thriller movies\n"
+                "- Crime / drama TV series\n"
+                "- Anime (shonen, seinen, action-heavy)\n"
+                "- Animated / Pixar / Dreamworks films\n"
+                "- Sci-fi / superhero\n"
+                "- Comedy TV series\n"
+                "- Classic cinema\n\n"
+                "Use whatever specific titles/characters YOU think are currently viral or timeless. "
+                "Don't stick to the same ones every run.\n\n"
                 "Return ONLY this JSON:\n"
                 '{"queries": ["query1", "query2", ..., "query10"]}'
             ),
