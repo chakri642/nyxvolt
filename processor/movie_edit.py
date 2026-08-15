@@ -120,12 +120,12 @@ def process(video: Path, hook_text: str = None) -> Path:
         hook_png = tmp_dir / "hook.png"
         wm_png = tmp_dir / "wm.png"
 
-        # Watermark: small corner mark — transparent bg, stroke for readability over video
-        wm_canvas_w, wm_canvas_h = 500, 90
+        # Watermark: small corner mark — same regular font as hook, smaller size
+        wm_canvas_w, wm_canvas_h = 400, 75
         _make_text_png(
-            BRAND_HANDLE, font_size=48, out_path=wm_png,
+            BRAND_HANDLE, font_size=38, out_path=wm_png,
             canvas_w=wm_canvas_w, canvas_h=wm_canvas_h,
-            bg_alpha=0, stroke_width=3,
+            bg_alpha=0, stroke_width=3, bold=False,
         )
 
         # Hook: transparent bg, regular-weight sans, black stroke for readability
@@ -140,9 +140,9 @@ def process(video: Path, hook_text: str = None) -> Path:
             )
 
         # Positions
-        # Watermark: bottom-right corner, 40px inset from right + bottom edges
+        # Watermark: bottom-right corner
         wm_x = w - wm_canvas_w - 40
-        wm_y = h - wm_canvas_h - 60
+        wm_y = h - wm_canvas_h - 120
         # Hook: full-width bar flush to top with a small inset
         hook_x = 0
         hook_y = 100

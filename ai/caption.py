@@ -1,6 +1,5 @@
 import os
 import anthropic
-from config import INSTAGRAM_HASHTAGS
 
 _client = None
 BRAND_FOOTER = "Daily movie edits — @nyxvolt"
@@ -47,4 +46,9 @@ def generate_caption(category: str) -> str:
     )
 
     caption_text = message.content[0].text.strip().strip('"').strip("'")
-    return f"{caption_text}\n\n{BRAND_FOOTER}\n.\n.\n.\n{INSTAGRAM_HASHTAGS}"
+
+    from ai.trending import suggest_movie_hashtags
+    tags = suggest_movie_hashtags()
+    hashtag_str = " ".join(f"#{t}" for t in tags)
+
+    return f"{caption_text}\n\n{BRAND_FOOTER}\n.\n.\n.\n{hashtag_str}"
