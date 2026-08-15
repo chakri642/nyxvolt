@@ -6,9 +6,14 @@ youtube_cookies.txt
 .instagram_session.json
 *.session
 
-# --- Runtime state (tracks used clips / caches) ---
-.used_clips*.json
-.movie_candidates_cache.json
+# --- Runtime state ---
+# Tracked in git so state persists across ephemeral Colab sessions:
+#   .used_clips_movies.json      — video-ID dedup (prevents reposting)
+#   .movie_candidates_cache.json — YouTube search cache (24h TTL, saves API quota)
+# Other .used_clips_*.json (legacy sources) stay ignored.
+.used_clips.json
+.used_clips_main.json
+.used_clips_brainrot.json
 
 # --- Generated media (large, transient) ---
 clips/raw/
