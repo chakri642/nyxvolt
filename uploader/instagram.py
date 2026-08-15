@@ -21,15 +21,13 @@ def _get_client(force_fresh: bool = False) -> Client:
     if _SESSION_FILE.exists() and not force_fresh:
         try:
             cl.load_settings(_SESSION_FILE)
-            cl.login(
-                os.environ["INSTAGRAM_USERNAME"],
-                os.environ["INSTAGRAM_PASSWORD"],
-            )
+            cl.get_timeline_feed()  # verify session without triggering a fresh login
             _client = cl
             return _client
         except Exception:
             _SESSION_FILE.unlink(missing_ok=True)
 
+    # No valid session — do a full login (only runs once per trusted device)
     cl.login(
         os.environ["INSTAGRAM_USERNAME"],
         os.environ["INSTAGRAM_PASSWORD"],
