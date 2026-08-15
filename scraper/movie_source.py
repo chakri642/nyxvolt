@@ -11,6 +11,7 @@ from pytubefix import YouTube
 from config import CLIPS_RAW
 
 MIN_VIEWS = 500_000
+MIN_LIKES = 100_000
 MIN_DURATION = 20
 MAX_DURATION = 180
 TOP_PICK_FROM = 5
@@ -118,7 +119,11 @@ def _search_youtube(query: str, api_key: str) -> list[dict]:
 def _is_good(video: dict, used: set) -> bool:
     if video["id"] in used:
         return False
-    if int(video.get("statistics", {}).get("viewCount", 0)) < MIN_VIEWS:
+    stats = video.get("statistics", {})
+    if int(stats.get("viewCount", 0)) < MIN_VIEWS:
+        return False
+    # Likes may be hidden by uploader; treat missing as 0 (fails the gate).
+    if int(stats.get("likeCount", 0)) < MIN_LIKES:
         return False
     dur = _parse_duration(video.get("contentDetails", {}).get("duration", "PT0S"))
     if not (MIN_DURATION <= dur <= MAX_DURATION):
@@ -269,8 +274,8 @@ def download_clip() -> tuple[Path, str]:
             try:
                 videos = _search_youtube(query, api_key)
                 good = [v for v in videos if _is_good(v, used)]
-                top_views = sorted([int(v.get("statistics", {}).get("viewCount", 0)) for v in good], reverse=True)[:3]
-                print(f"  '{query}': {len(good)} good | top views: {[f'{v//1000}K' for v in top_views]}")
+                top_likes = sorted([int(v.get("statistics", {}).get("likeCount", 0)) for v in good], reverse=True)[:3]
+                print(f"  '{query}': {len(good)} good | top likes: {[f'{l//1000}K' for l in top_likes]}")
                 candidates.extend(good)
             except Exception as e:
                 print(f"  Query failed ({query[:40]}): {str(e)[:60]}")
