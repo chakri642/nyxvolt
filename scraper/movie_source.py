@@ -134,11 +134,8 @@ def _is_good(video: dict, used: set) -> bool:
     return True
 
 
-def _download_video(video_id: str) -> Path:
-    """Download best video+audio via pytubefix MWEB client, merge with ffmpeg.
-    MWEB is the only client that works reliably on datacenter IPs (Colab) without
-    OAuth, cookies, or PO tokens. Progressive streams max at 360p, so we grab
-    the best adaptive video-only stream (typically 720p) + best audio + merge."""
+def _download_via_pytubefix(video_id: str) -> Path:
+    """Try pytubefix MWEB — fastest path when it works."""
     url = f"https://www.youtube.com/watch?v={video_id}"
     yt = YouTube(url, 'MWEB')
 
@@ -167,6 +164,40 @@ def _download_video(video_id: str) -> Path:
             raise RuntimeError(f"ffmpeg merge failed: {result.stderr[-500:]}")
 
     return output
+
+
+def _download_via_ytdlp(video_id: str) -> Path:
+    """Fallback: yt-dlp has more extractor strategies against bot detection."""
+    output = CLIPS_RAW / f"{video_id}.mp4"
+    url = f"https://www.youtube.com/watch?v={video_id}"
+
+    result = subprocess.run(
+        [
+            "yt-dlp",
+            "-f", "bestvideo[height<=720][ext=mp4]+bestaudio/best[height<=720]/best",
+            "--merge-output-format", "mp4",
+            "--no-warnings",
+            "--extractor-args", "youtube:player_client=android,web,ios",
+            "-o", str(output),
+            url,
+        ],
+        capture_output=True, text=True, timeout=180,
+    )
+    if result.returncode != 0 or not output.exists():
+        raise RuntimeError(f"yt-dlp failed: {result.stderr[-400:] or result.stdout[-400:]}")
+    return output
+
+
+def _download_video(video_id: str) -> Path:
+    """Try pytubefix first (fast), fall back to yt-dlp on bot-detection."""
+    try:
+        return _download_via_pytubefix(video_id)
+    except Exception as e:
+        msg = str(e)
+        if "bot" in msg.lower() or "detected" in msg.lower() or "streams" in msg.lower():
+            print(f"    pytubefix bot-detected, trying yt-dlp fallback...")
+            return _download_via_ytdlp(video_id)
+        raise
 
 
 def get_context(video_id: str) -> dict:
