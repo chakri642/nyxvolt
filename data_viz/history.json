@@ -1,0 +1,58 @@
+[
+  {
+    "picked_at": "2026-08-15T15:02:48.503739Z",
+    "ticker": "GME",
+    "start_date": "2019-01-02",
+    "end_date": null,
+    "hook": "If you threw $100 into GameStop before the chaos.",
+    "niche": "stocks"
+  },
+  {
+    "picked_at": "2026-08-15T15:32:18.513614Z",
+    "ticker": "DOGE-USD",
+    "start_date": "2020-01-01",
+    "end_date": null,
+    "hook": "If you bought $100 of Dogecoin before Elon tweeted.",
+    "niche": "crypto"
+  },
+  {
+    "picked_at": "2026-08-15T15:42:39.932548Z",
+    "ticker": "NVDA",
+    "start_date": "2016-01-04",
+    "end_date": null,
+    "hook": "If you put $100 into NVIDIA before the AI explosion.",
+    "niche": "stocks"
+  },
+  {
+    "picked_at": "2026-08-15T15:44:22.797233Z",
+    "ticker": "TSLA",
+    "start_date": "2012-01-03",
+    "end_date": null,
+    "hook": "If you bet $100 on Tesla before anyone believed it.",
+    "niche": "stocks"
+  },
+  {
+    "picked_at": "2026-08-15T15:46:21.984329Z",
+    "ticker": "BTC-USD",
+    "start_date": "2012-01-01",
+    "end_date": null,
+    "hook": "If you bought $100 of Bitcoin in 2012.",
+    "niche": "crypto"
+  },
+  {
+    "picked_at": "2026-08-15T18:58:24.808492Z",
+    "ticker": "META",
+    "start_date": "2012-05-18",
+    "end_date": null,
+    "hook": "If you bought $100 of Facebook on its disastrous IPO day.",
+    "niche": "stocks"
+  },
+  {
+    "picked_at": "2026-08-16T02:58:41.964828Z",
+    "ticker": "NFLX",
+    "start_date": "2007-01-03",
+    "end_date": null,
+    "hook": "If you put $100 into Netflix when DVDs ruled.",
+    "niche": "stocks"
+  }
+]

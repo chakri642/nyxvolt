@@ -48,7 +48,7 @@ def _next_source() -> str:
         return next(_source_cycle)
 
 
-def run_pipeline(source: str = None, game: str = None, brainrot: bool = None, post: bool = False, movie_edit: bool = False):
+def run_pipeline(source: str = None, game: str = None, brainrot: bool = None, post: bool = False, movie_edit: bool = False, query: str = None):
     if movie_edit:
         source = "instagram"
         brainrot = False
@@ -65,7 +65,9 @@ def run_pipeline(source: str = None, game: str = None, brainrot: bool = None, po
     clip_title = ""
     if movie_edit:
         from scraper import movie_source
-        raw, game = movie_source.download_clip()
+        if query:
+            log.info(f"Using user-supplied query: '{query}'")
+        raw, game = movie_source.download_clip(query=query)
     else:
         from scraper import youtube, twitch, reddit, instagram_source
         if source == "instagram":
@@ -199,6 +201,9 @@ def main():
     parser.add_argument("--brainrot", action="store_true", help="Force split-screen format")
     parser.add_argument("--movie-edit", action="store_true", help="Movie-edit mode: cinematic movie clips with AI-selected hype music")
     parser.add_argument("--post", action="store_true", help="Upload to Instagram (off by default)")
+    parser.add_argument("query", nargs="?", default=None,
+                        help="Optional YouTube search query for movie-edit mode. "
+                             "If given, skips random Claude picks and grabs top result for this query.")
     args = parser.parse_args()
 
     if args.generate_brainrot:
@@ -213,6 +218,7 @@ def main():
             brainrot=True if args.brainrot else None,
             post=args.post,
             movie_edit=args.movie_edit,
+            query=args.query,
         )
     elif args.schedule:
         import scheduler

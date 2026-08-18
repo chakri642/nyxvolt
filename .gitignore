@@ -23,6 +23,7 @@ clips/secondary/
 clips/*.mp4
 clips/*.mov
 clips/*.webm
+clips/
 
 # --- Music library (large binary files) ---
 music/**/*.mp3

@@ -242,66 +242,87 @@ def get_transcript(video_id: str, rapid_key: str = None) -> str:
         return ""
 
 
-def download_clip() -> tuple[Path, str]:
+def download_clip(query: str = None) -> tuple[Path, str]:
     from ai.trending import suggest_movie_queries
     api_key = os.environ["YOUTUBE_API_KEY"]
 
-    try:
-        queries = suggest_movie_queries()
-    except Exception as e:
-        print(f"  Claude query suggestion failed: {e}")
-        queries = []
-
-    fallback_queries = [
-        "joker edit 4k", "thomas shelby sigma edit", "walter white best scenes",
-        "dark knight best scenes 4k", "breaking bad sigma edit",
-    ]
-    all_queries = list(dict.fromkeys(queries + fallback_queries))
-    random.shuffle(all_queries)
-
     used = _load_used()
 
-    # Try candidate cache first (preserve YouTube API quota)
-    cached = _load_candidates_cache()
-    cached = [c for c in cached if c.get("id") not in used]
-
-    if len(cached) >= 5:
-        unique = cached
+    # User-supplied query: skip Claude + cache, search directly, take top result.
+    if query:
+        print(f"  Direct search: '{query}'")
+        try:
+            videos = _search_youtube(query, api_key)
+        except Exception as e:
+            raise RuntimeError(f"YouTube search failed for '{query}': {e}")
+        good = [v for v in videos if _is_good(v, used)]
+        if not good:
+            # Try again without the likes gate — user asked for THIS specific query.
+            good = [v for v in videos
+                    if v["id"] not in used
+                    and int(v.get("statistics", {}).get("viewCount", 0)) >= MIN_VIEWS
+                    and MIN_DURATION <= _parse_duration(v.get("contentDetails", {}).get("duration", "PT0S")) <= MAX_DURATION]
+            if good:
+                print(f"  No clips passed likes gate — falling back to top-viewed match")
+        if not good:
+            raise RuntimeError(f"No matching clips found for query '{query}'")
+        good.sort(key=lambda v: int(v.get("statistics", {}).get("viewCount", 0)), reverse=True)
+        unique = good
     else:
-        print(f"  Cache thin — searching YouTube ({len(all_queries)} queries)")
-        candidates = []
-        for query in all_queries[:6]:
-            try:
-                videos = _search_youtube(query, api_key)
-                good = [v for v in videos if _is_good(v, used)]
-                top_likes = sorted([int(v.get("statistics", {}).get("likeCount", 0)) for v in good], reverse=True)[:3]
-                print(f"  '{query}': {len(good)} good | top likes: {[f'{l//1000}K' for l in top_likes]}")
-                candidates.extend(good)
-            except Exception as e:
-                print(f"  Query failed ({query[:40]}): {str(e)[:60]}")
+        try:
+            queries = suggest_movie_queries()
+        except Exception as e:
+            print(f"  Claude query suggestion failed: {e}")
+            queries = []
 
-        if not candidates:
-            print("  YouTube API exhausted — using hardcoded fallback list")
-            candidates = [
-                {
-                    "id": vid,
-                    "snippet": {"title": title},
-                    "statistics": {"viewCount": str(views)},
-                    "contentDetails": {"duration": "PT1M"},
-                }
-                for vid, title, views in FALLBACK_VIDEO_IDS
-                if vid not in used
-            ]
+        fallback_queries = [
+            "joker edit 4k", "thomas shelby sigma edit", "walter white best scenes",
+            "dark knight best scenes 4k", "breaking bad sigma edit",
+        ]
+        all_queries = list(dict.fromkeys(queries + fallback_queries))
+        random.shuffle(all_queries)
+
+        # Try candidate cache first (preserve YouTube API quota)
+        cached = _load_candidates_cache()
+        cached = [c for c in cached if c.get("id") not in used]
+
+        if len(cached) >= 5:
+            unique = cached
+        else:
+            print(f"  Cache thin — searching YouTube ({len(all_queries)} queries)")
+            candidates = []
+            for q in all_queries[:6]:
+                try:
+                    videos = _search_youtube(q, api_key)
+                    good = [v for v in videos if _is_good(v, used)]
+                    top_likes = sorted([int(v.get("statistics", {}).get("likeCount", 0)) for v in good], reverse=True)[:3]
+                    print(f"  '{q}': {len(good)} good | top likes: {[f'{l//1000}K' for l in top_likes]}")
+                    candidates.extend(good)
+                except Exception as e:
+                    print(f"  Query failed ({q[:40]}): {str(e)[:60]}")
+
             if not candidates:
-                raise RuntimeError("No fallback clips available (all in used history)")
+                print("  YouTube API exhausted — using hardcoded fallback list")
+                candidates = [
+                    {
+                        "id": vid,
+                        "snippet": {"title": title},
+                        "statistics": {"viewCount": str(views)},
+                        "contentDetails": {"duration": "PT1M"},
+                    }
+                    for vid, title, views in FALLBACK_VIDEO_IDS
+                    if vid not in used
+                ]
+                if not candidates:
+                    raise RuntimeError("No fallback clips available (all in used history)")
 
-        candidates.sort(key=lambda v: int(v.get("statistics", {}).get("viewCount", 0)), reverse=True)
-        seen, unique = set(), []
-        for v in candidates:
-            if v["id"] not in seen:
-                seen.add(v["id"])
-                unique.append(v)
-        _save_candidates_cache(unique[:30])
+            candidates.sort(key=lambda v: int(v.get("statistics", {}).get("viewCount", 0)), reverse=True)
+            seen, unique = set(), []
+            for v in candidates:
+                if v["id"] not in seen:
+                    seen.add(v["id"])
+                    unique.append(v)
+            _save_candidates_cache(unique[:30])
 
     top = unique[:TOP_PICK_FROM]
     top_views = [f"{int(v['statistics']['viewCount'])//1000}K" for v in top]
